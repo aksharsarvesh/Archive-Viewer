@@ -1,5 +1,5 @@
 from typing import (Any, Optional)
-from qtpy.QtCore import (QObject, QModelIndex, Qt)
+from qtpy.QtCore import (QObject, QModelIndex, Qt, Slot)
 from pydm.widgets.baseplot import BasePlot, BasePlotCurveItem
 from pydm.widgets.archiver_time_plot import ArchivePlotCurveItem, FormulaCurveItem
 from pydm.widgets.archiver_time_plot_editor import PyDMArchiverTimePlotCurvesModel
@@ -29,6 +29,8 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
         self._column_names = self._column_names[:6] + ("Style",) + self._column_names[6:] + ("",)
         self._row_names = []
         self._axis_model = axis_model
+        self._axis_model.remove_curve.connect(self.remove_curve)
+        self._axis_model.hide_curve.connect(self.hide_curve)
 
     def get_data(self, column_name: str, curve: ArchivePlotCurveItem) -> Any:
         """Get data from the model based on column name.
@@ -301,3 +303,13 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             The requested curve.
         """
         return self._plot.curveAtIndex(index)
+    
+    @Slot(object)
+    def remove_curve(self, curve: BasePlotCurveItem):
+        ind = self._plot._curves.index(curve)
+        ind = self.index(ind, 0)
+        self.removeAtIndex(ind)
+
+    @Slot(object, bool)
+    def hide_curve(self, curve: BasePlotCurveItem, hide: bool):
+        pass

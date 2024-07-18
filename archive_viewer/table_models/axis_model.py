@@ -1,5 +1,5 @@
 from typing import Any
-from qtpy.QtCore import (Qt, QVariant, QPersistentModelIndex, QModelIndex)
+from qtpy.QtCore import (Qt, QVariant, QPersistentModelIndex, QModelIndex, Signal)
 from pydm.widgets.baseplot import BasePlot, BasePlotAxisItem
 from pydm.widgets.axis_table_model import BasePlotAxesModel
 
@@ -15,6 +15,8 @@ class ArchiverAxisModel(BasePlotAxesModel):
     parent : QObject, optional
         The model's parent, by default None
     """
+    remove_curve = Signal(object)
+    hide_curve = Signal(object, bool)
     def __init__(self, plot: BasePlot, parent=None) -> None:
         super().__init__(plot, parent)
         self._column_names = self._column_names + ("",)
@@ -102,6 +104,10 @@ class ArchiverAxisModel(BasePlotAxesModel):
         """
         if self.rowCount() <= 1:
             self.append()
+        axis = self.get_axis(index.row())
+        if hasattr(axis, "_curves"):
+            for curve in axis._curves:
+                self.remove_curve.emit(curve)
         super().removeAtIndex(index)
 
     def get_axis(self, index: int) -> BasePlotAxisItem:
