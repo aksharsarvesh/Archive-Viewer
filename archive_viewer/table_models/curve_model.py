@@ -64,13 +64,16 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             If the data was successfully set.
         """
         ret_code = False
+        index = self.index(self._plot._curves.index(curve),0)
         if column_name == "Channel":
+
             #If we are changing the channel, then we need to check the current type, and the type we're going to
-            index = self.index(self._plot._curves.index(curve),0)
             if value.startswith("f://"):
                 #Regardless of starting point, going to a formula is handled in this one function
-                return self.replaceToFormula(index = index, formula = value)
+                self.plot.plotItem.unlinkDataFromAxis(curve, curve.y_axis_name)
+                ret_code = self.replaceToFormula(index = index, formula = value)
             else:
+                curve.show()
                 #Going from archivePlot -> archivePlot is easily defined, so just fix it
                 if isinstance(curve,ArchivePlotCurveItem):
                     if value == curve.address:
@@ -93,11 +96,13 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
                 self.plot.linkDataToAxis(self._plot._curves[index.row()], curve.y_axis_name)
                 self.append()
             ret_code = True
+
         elif column_name == "Y-Axis Name":
             if value == curve.y_axis_name:
                 return True
             self.plot.plotItem.unlinkDataFromAxis(curve, curve.y_axis_name)
-            self.plot.linkDataToAxis(self._plot._curves[index.row()], value)
+            self.plot.linkDataToAxis(curve, value)
+            ret_code = super(ArchiverCurveModel, self).set_data(column_name, curve, value)
         elif column_name == "Style":
             curve.plot_style = str(value)
             ret_code = True
@@ -131,6 +136,7 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
         #by default, add a blank archivePlotCurveItem such that there's an empty row to add PVs or formulas to.
         self._plot.addYChannel(y_channel=address, name=name, color=color, useArchiveData=True, yAxisName=y_axis.name)
         self.endInsertRows()
+        self._plot._curves[-1].hide()
         if self.rowCount() != 1:
             logger.debug("Hide blank Y-axis")
             self._axis_model.plot.plotItem.axes[y_axis.name]["item"].hide()
@@ -184,6 +190,7 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             if index.row() == self.rowCount() - 1:
                 self.append()
             y_axis = self._axis_model.get_axis(index.row())
+
             self._plot._curves[index.row()] = self._plot.addFormulaChannel(formula=formula, name=formula, pvs=pvdict,color=color, useArchiveData=True, yAxisName=y_axis.name)
             self._plot._curves[index.row()].formula_invalid_signal.connect(partial(self.invalidFormula, header = rowName))
             #Need to check if Formula is referencing a dead row

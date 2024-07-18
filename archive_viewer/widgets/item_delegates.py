@@ -99,7 +99,6 @@ class ComboBoxDelegate(QStyledItemDelegate):
         """Initialize a QComboBox for use in the Table View."""
         if index.row() >= len(self.editor_list):
             editor = QComboBox()
-
             logger.debug(f"Setting input to {self.data_source}")
             if isinstance(self.data_source, dict):
                 editor.addItems(self.data_source.keys())
@@ -112,7 +111,7 @@ class ComboBoxDelegate(QStyledItemDelegate):
             elif isinstance(self.data_source, QAbstractItemModel):
                 editor.setModel(self.data_source)
                 editor.setModelColumn(0)
-
+                editor.setCurrentIndex(editor.count() - 1)
             editor.setFocusPolicy(Qt.StrongFocus)
             editor.setContextMenuPolicy(Qt.CustomContextMenu)
             editor.customContextMenuRequested.connect(self.combo_menu_requested)
