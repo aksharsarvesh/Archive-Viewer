@@ -26,11 +26,11 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
 
     def __init__(self, parent: Optional[QObject], plot: BasePlot, axis_model: ArchiverAxisModel) -> None:
         super(ArchiverCurveModel, self).__init__(plot, parent)
-        self._column_names = self._column_names[:6] + ("Style",) + self._column_names[6:] + ("",)
+        self._column_names = self._column_names[:6] + ("Style",) + self._column_names[6:] + ("Hidden", "",)
         self._row_names = []
         self._axis_model = axis_model
         self._axis_model.remove_curve.connect(self.remove_curve)
-        self._axis_model.hide_curve.connect(self.hide_curve)
+        self.checkable_cols.add(self.getColumnIndex("Hidden"))
 
     def get_data(self, column_name: str, curve: ArchivePlotCurveItem) -> Any:
         """Get data from the model based on column name.
@@ -45,6 +45,8 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
         """
         if column_name == "Style":
             return curve.plot_style
+        if column_name == "Hidden":
+            return not curve.isVisible()
         return super(ArchiverCurveModel, self).get_data(column_name, curve)
 
     def set_data(self, column_name: str, curve: BasePlotCurveItem, value: Any) -> bool:
@@ -68,7 +70,6 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
         ret_code = False
         index = self.index(self._plot._curves.index(curve),0)
         if column_name == "Channel":
-
             #If we are changing the channel, then we need to check the current type, and the type we're going to
             if value.startswith("f://"):
                 #Regardless of starting point, going to a formula is handled in this one function
@@ -98,7 +99,6 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
                 self.plot.linkDataToAxis(self._plot._curves[index.row()], curve.y_axis_name)
                 self.append()
             ret_code = True
-
         elif column_name == "Y-Axis Name":
             if value == curve.y_axis_name:
                 return True
@@ -107,6 +107,15 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             ret_code = super(ArchiverCurveModel, self).set_data(column_name, curve, value)
         elif column_name == "Style":
             curve.plot_style = str(value)
+            ret_code = True
+        elif column_name == "Hidden":
+            hidden = bool(value)
+            if hidden:
+                curve.hide()
+                self._axis_model.plot.plotItem.autoVisible(curve.y_axis_name)
+            else:
+                curve.show()
+                self._axis_model.plot.plotItem.axes[curve.y_axis_name]["item"].show()
             ret_code = True
         else:
             ret_code = super(ArchiverCurveModel, self).set_data(column_name, curve, value)
@@ -303,13 +312,9 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             The requested curve.
         """
         return self._plot.curveAtIndex(index)
-    
+
     @Slot(object)
     def remove_curve(self, curve: BasePlotCurveItem):
         ind = self._plot._curves.index(curve)
         ind = self.index(ind, 0)
         self.removeAtIndex(ind)
-
-    @Slot(object, bool)
-    def hide_curve(self, curve: BasePlotCurveItem, hide: bool):
-        pass

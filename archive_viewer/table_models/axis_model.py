@@ -16,13 +16,13 @@ class ArchiverAxisModel(BasePlotAxesModel):
         The model's parent, by default None
     """
     remove_curve = Signal(object)
-    hide_curve = Signal(object, bool)
     def __init__(self, plot: BasePlot, parent=None) -> None:
         super().__init__(plot, parent)
-        self._column_names = self._column_names + ("",)
+        self._column_names = self._column_names + ("Hidden","",)
 
         self.checkable_col = {self.getColumnIndex("Enable Auto Range"),
-                              self.getColumnIndex("Log Mode")}
+                              self.getColumnIndex("Log Mode"),
+                              self.getColumnIndex("Hidden")}
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         """Return flags that determine how users can interact with the items in the table"""
@@ -67,6 +67,10 @@ class ArchiverAxisModel(BasePlotAxesModel):
         """
         if not index.isValid():
             return QVariant()
+        elif role == Qt.CheckStateRole and self._column_names[index.column()] == "Hidden":
+            axis = self.plot._axes[index.row()]
+            self.setHidden(axis, bool(value))
+            return True
         elif role == Qt.CheckStateRole and index.column() in self.checkable_col:
             return super().setData(index, value, Qt.EditRole)
         elif index.column() not in self.checkable_col:
@@ -94,6 +98,7 @@ class ArchiverAxisModel(BasePlotAxesModel):
         new_axis = self.get_axis(-1)
         row = self.rowCount() - 1
         self.attach_range_changed(row, new_axis)
+
     def removeAtIndex(self, index: QModelIndex) -> None:
         """Removes the axis at the given table index.
 
@@ -109,6 +114,22 @@ class ArchiverAxisModel(BasePlotAxesModel):
             for curve in axis._curves:
                 self.remove_curve.emit(curve)
         super().removeAtIndex(index)
+
+    def setHidden(self, axis: BasePlotAxisItem, hidden: bool) -> None:
+        """Removes the axis at the given table index.
+
+        Parameters
+        ----------
+        index : QModelIndex
+            An index in the row to be removed.
+        """
+        if hasattr(axis, "_curves"):
+            for curve in axis._curves:
+                if hidden:
+                    curve.hide()
+                else:
+                    curve.show()
+        axis.setHidden(hidden)
 
     def get_axis(self, index: int) -> BasePlotAxisItem:
         """Return the BasePlotAxisItem for a given row number.
