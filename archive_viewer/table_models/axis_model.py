@@ -19,7 +19,7 @@ class ArchiverAxisModel(BasePlotAxesModel):
     def __init__(self, plot: BasePlot, parent=None) -> None:
         super().__init__(plot, parent)
         self._column_names = self._column_names + ("Hidden","",)
-
+        self.axis_count = 0
         self.checkable_col = {self.getColumnIndex("Enable Auto Range"),
                               self.getColumnIndex("Log Mode"),
                               self.getColumnIndex("Hidden")}
@@ -87,15 +87,10 @@ class ArchiverAxisModel(BasePlotAxesModel):
             The name for the new axis item. If none is passed in, the
             axis is named "New Axis <row_count>".
         """
+        self.axis_count += 1
         if not name:
-            axis_count = self.rowCount() + 1
-            name = f"New Axis {axis_count}"
-            while name in self.plot.plotItem.axes:
-                axis_count += 1
-                name = f"New Axis {axis_count}"
-
+            name = f"New Axis {self.axis_count}"
         super().append(name)
-
         new_axis = self.get_axis(-1)
         row = self.rowCount() - 1
         self.attach_range_changed(row, new_axis)
@@ -128,11 +123,13 @@ class ArchiverAxisModel(BasePlotAxesModel):
         if hasattr(axis, "_curves"):
             for curve in axis._curves:
                 if hidden:
+                    curve.hidden = True
                     curve.hide()
                 else:
+                    curve.hidden = False
                     curve.show()
         # Hide the axis
-        axis.setHidden(hidden)
+        axis.setHidden(shouldHide=hidden)
 
     def get_axis(self, index: int) -> BasePlotAxisItem:
         """Return the BasePlotAxisItem for a given row number.

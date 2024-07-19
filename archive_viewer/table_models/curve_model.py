@@ -96,6 +96,7 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
 
             if value and self._plot._curves[-1] is curve:
                 self.plot.plotItem.unlinkDataFromAxis(curve, curve.y_axis_name)
+                self._axis_model.plot.plotItem.axes[curve.y_axis_name]["item"].hidden = False
                 self.plot.linkDataToAxis(self._plot._curves[index.row()], curve.y_axis_name)
                 self.append()
             ret_code = True
@@ -113,9 +114,11 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             # Handle toggling hidden
             hidden = bool(value)
             if hidden:
+                curve.hidden = True
                 curve.hide()
                 self._axis_model.plot.plotItem.autoVisible(curve.y_axis_name)
             else:
+                curve.hidden = False
                 curve.show()
                 self._axis_model.plot.plotItem.axes[curve.y_axis_name]["item"].show()
             ret_code = True
@@ -158,6 +161,7 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
         #saving the next line for axis fixes
         #self.plot.plotItem.axes[self.get_data(curve=self._plot._curves[index.row()], column_name="Y-Axis Name")]
         #Get rid of the old formula
+        self._axis_model.plot.plotItem.axes[curve.y_axis_name]["item"].hidden = False
         self.plot.plotItem.unlinkDataFromAxis(curve, curve.y_axis_name)
         self.plot.removeItem(curve)
         if not color:
@@ -253,13 +257,15 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             An index in the row to be removed.
         """
         if isinstance(self._plot._curves[index.row()], FormulaCurveItem):
-            #Formula Curves don't have channel ddata so we should just remove it as if it were no longer valid
+            # Formula Curves don't have channel data so we should just remove it as if it were no longer valid
             self.invalidFormula(self._row_names[index.row()])
             return False
 
         if not index.isValid() or index.row() == (self.rowCount() - 1):
             return False
         del self._row_names[index.row()]
+        curve = self._plot._curves[index.row()]
+        [ch.disconnect() for ch in curve.channels() if ch]
         ret = super(ArchiverCurveModel, self).removeAtIndex(index)
         if not self._plot._curves:
             self.append()
