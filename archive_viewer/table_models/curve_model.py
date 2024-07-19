@@ -100,6 +100,7 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
                 self.append()
             ret_code = True
         elif column_name == "Y-Axis Name":
+            # If we change the Y-Axis, unlink from previous and link to new
             if value == curve.y_axis_name:
                 return True
             self.plot.plotItem.unlinkDataFromAxis(curve, curve.y_axis_name)
@@ -109,6 +110,7 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             curve.plot_style = str(value)
             ret_code = True
         elif column_name == "Hidden":
+            # Handle toggling hidden
             hidden = bool(value)
             if hidden:
                 curve.hide()
@@ -315,6 +317,8 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
 
     @Slot(object)
     def remove_curve(self, curve: BasePlotCurveItem):
+        """Necessary specifically for when an axis is deleted
+        To properly delete all of its connected curves"""
         ind = self._plot._curves.index(curve)
         ind = self.index(ind, 0)
         self.removeAtIndex(ind)

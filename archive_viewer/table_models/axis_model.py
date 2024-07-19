@@ -67,6 +67,7 @@ class ArchiverAxisModel(BasePlotAxesModel):
         """
         if not index.isValid():
             return QVariant()
+        # Specifically the Hidden column must be affected in axis_model as opposed to elsewhere
         elif role == Qt.CheckStateRole and self._column_names[index.column()] == "Hidden":
             axis = self.plot._axes[index.row()]
             self.setHidden(axis, bool(value))
@@ -116,19 +117,21 @@ class ArchiverAxisModel(BasePlotAxesModel):
         super().removeAtIndex(index)
 
     def setHidden(self, axis: BasePlotAxisItem, hidden: bool) -> None:
-        """Removes the axis at the given table index.
+        """Hides the axis at the given table index.
 
         Parameters
         ----------
         index : QModelIndex
-            An index in the row to be removed.
+            An index in the row to be hidde.
         """
+        # Hide all curves
         if hasattr(axis, "_curves"):
             for curve in axis._curves:
                 if hidden:
                     curve.hide()
                 else:
                     curve.show()
+        # Hide the axis
         axis.setHidden(hidden)
 
     def get_axis(self, index: int) -> BasePlotAxisItem:
