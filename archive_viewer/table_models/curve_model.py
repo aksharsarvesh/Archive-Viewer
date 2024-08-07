@@ -177,7 +177,9 @@ class ArchiverCurveModel(PyDMArchiverTimePlotCurvesModel):
             if pv not in self._row_names:
                 raise ValueError(f"{pv} is an invalid variable name")
             elif pv == rowName:
-                raise ValueError(f"{pv} is recursive")
+                raise ValueError("Error, formula is recursive")
+            elif self._row_names.index(pv) > self._row_names.index(rowName):
+                raise ValueError("Error, all referenced rows must be before the formula")
             else:
                 # if it's good, add it to the dictionary of curves. rindex = row index (int) as opposed to index, which is a QModelIndex
                 rindex = self._row_names.index(pv)
