@@ -117,7 +117,7 @@ class ArchiveViewerFileConverter():
         elif isinstance(output_data, PyDMTimePlot):
             output_data = self.get_plot_data(output_data)
 
-        for obj in output_data['y-axes'] + output_data['curves']:
+        for obj in output_data['y-axes'] + output_data['curves'] + output_data['formula']:
             for k, v in obj.copy().items():
                 if v is None:
                     del obj[k]
@@ -142,7 +142,7 @@ class ArchiveViewerFileConverter():
         """
         if not data_in:
             data_in = self.stored_data
-
+        print(data_in)
         converted_data = {}
 
         converted_data['archiver_url'] = data_in.get("connection_parameter",
@@ -186,9 +186,19 @@ class ArchiveViewerFileConverter():
             filtered_dict = self.remove_null_values(pv_dict)
             converted_data['curves'].append(filtered_dict)
 
+        converted_data['formula'] = []
         for formula_in in data_in['formula']:
-            # TODO convert formulas once formulas are implemented for ArchiveViewer
-            pass
+            color = self.srgb_to_qColor(pv_in['color'])
+            formula_dict = {'name': formula_in['name'],
+                            'formula': formula_in['formula'],
+                            'curveDict': formula_in['formula'],
+                            'yAxisName': formula_in['range_axis_name'],
+                            'lineWidth': float(formula_in['draw_width']),
+                            'color': color.name(),
+                            'thresholdColor': color.name()}
+            filtered_dict = self.remove_null_values(formula_dict)
+            print(filtered_dict)
+            converted_data['formula'].append(filtered_dict)
 
         self.stored_data = converted_data
         return self.stored_data
@@ -273,7 +283,8 @@ class ArchiveViewerFileConverter():
                        'plot': {},
                        'time_axis': {},
                        'y-axes': [],
-                       'curves': []}
+                       'curves': [],
+                       'formula': []}
 
         [start_ts, end_ts] = plot.getXAxis().range
         start_dt = datetime.fromtimestamp(start_ts)
@@ -290,9 +301,14 @@ class ArchiveViewerFileConverter():
 
         for c in plot.getCurves():
             curve_dict = json.loads(c, object_pairs_hook=OrderedDict)
-            if not curve_dict['channel']:
-                continue
-            output_dict['curves'].append(curve_dict)
+            if 'channel' in curve_dict:
+                if not curve_dict['channel']:
+                    continue
+                output_dict['curves'].append(curve_dict)
+            else:
+                if not curve_dict['formula']:
+                    continue
+                output_dict['formula'].append(curve_dict)
 
         return output_dict
 
